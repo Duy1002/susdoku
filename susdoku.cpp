@@ -49,6 +49,8 @@
 #include "bits/stdc++.h"
 using namespace std;
 
+const float TLE = 0.01;
+
 int board[9][9], num[9][9];
 bitset<10> row[9], col[9], box[9];
 
@@ -98,7 +100,7 @@ void solve(int idx) {
     bitset<10> tmp = row[x] & col[y] & box[num[x][y]];
 
     for (int n = tmp._Find_first(); n < 10; n = tmp._Find_next(n)) {
-        if (sol > 1  || float(clock() - Time) / CLOCKS_PER_SEC >= 0.01) return;
+        if (sol > 1  || float(clock() - Time) / CLOCKS_PER_SEC >= TLE) return;
 
         Move(x, y, n, 0);
         solve(idx + 1);
@@ -116,6 +118,34 @@ void solve_sudoku() {
                 Empty[Size++] = {x, y};
 
     solve(0);
+}
+
+tuple<int,int,int> valid_move[729];
+mt19937 rd(chrono::high_resolution_clock::now().time_since_epoch().count());
+
+void random_move() {
+    int sz = 0;
+    bitset<10> tmp;
+
+    for (int x = 0; x < 9; ++x)
+        for (int y = 0; y < 9; ++y)
+            if (!board[x][y]) {
+                tmp = row[x] & col[y] & box[num[x][y]];
+                for (int n = tmp._Find_first(); n < 10; n = tmp._Find_next(n))
+                    valid_move[sz++] = {x, y, n};
+            }
+
+    int Rand;
+    do {
+        Rand = rd() % sz;
+        auto &[x, y, n] = valid_move[Rand];
+        Move(x, y, n, 0);
+        solve_sudoku();
+        Move(x, y, n, 1);
+    } while (sol == 0);
+
+    auto &[x, y, n] = valid_move[Rand];
+    output(x, y, n);
 }
 
 int X, Y, N;
@@ -185,6 +215,11 @@ int minimax(int depth, int &max_depth) {
 void best_move(int depth) {
     minimax(1, depth);
 
+    if (board[X][Y]) {
+        random_move();
+        return;
+    }
+
     Move(X, Y, N, 0);
     solve_sudoku();
 
@@ -192,8 +227,9 @@ void best_move(int depth) {
     else output(X, Y, N);
 }
 
-int main() {
-	ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+signed main() {
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
 
 	init();
 
@@ -212,6 +248,7 @@ int main() {
         }
 
         ++turn;
-        best_move(turn / 30 + 1);
+        if (turn <= 15) random_move();
+        else best_move(turn / 30 + 1);
 	}
 }
